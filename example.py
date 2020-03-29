@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/path/to/venv/bin/python with-installed-rofi-menu <-- change it
 import rofi_menu
 
 
