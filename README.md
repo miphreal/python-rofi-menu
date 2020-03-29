@@ -2,7 +2,7 @@
 
 Simple demo:
 
-![custom menu](docs/Demo.gif)
+![custom menu](docs/demo.gif)
 
 ## Installation
 
