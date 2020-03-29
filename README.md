@@ -3,7 +3,12 @@
         <img src="https://badge.fury.io/py/rofi-menu.svg" alt="Package version">
     </a>
 </p>
-# rofi-menu: lib for building rofi menu via python
+
+# rofi-menu
+
+Rofi allows defining custom modes ([see the spec](https://github.com/davatorium/rofi/wiki/mode-Specs)).
+
+This lib is a reference implementation with some extra "sugar".
 
 Simple demo:
 
@@ -19,11 +24,13 @@ $ pip install rofi-menu
 
 ## Example
 
-Create a script for which will be used for rofi mode
-
+Create a python script which will be used for rofi mode
 e.g. `example.py` (don't forget to mark it as executable -- `chmod +x ./example.py`)
+
+Assuming you installed `rofi-menu` into a virtual environment (let's say it's `~/.pyenv/versions/rofi/bin/python`).
+Make sure shebang points to the right python executable, e.g. `#!/home/user/pyenv/versions/rofi/bin/python`.
 ```python
-#!/path/to/python-with-installed-rofi-menu
+#!/home/user/pyenv/versions/rofi/bin/python
 import rofi_menu
 
 
@@ -64,11 +71,10 @@ if __name__ == "__main__":
     rofi_menu.run(MainMenu())
 ```
 
-
 Run it as:
 
 ```sh
-$ rofi -modi mymenu:$(pwd)/example.py -show mymenu
+$ rofi -modi mymenu:/path/to/example.py -show mymenu
 ```
 
 It'll result in
