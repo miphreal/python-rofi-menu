@@ -1,5 +1,5 @@
 <p align="center">
-    <a href="https://pypi.org/miphreal/rofi-menu">
+    <a href="https://pypi.org/project/rofi-menu/">
         <img src="https://badge.fury.io/py/rofi-menu.svg" alt="Package version">
     </a>
 </p>
