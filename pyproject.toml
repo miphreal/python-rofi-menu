@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "rofi-menu"
-version = "0.1.0"
+version = "0.2.0"
 description = "Create rofi menus via python"
 authors = ["miphreal <miphreal@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.6"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"
