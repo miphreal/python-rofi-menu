@@ -1,3 +1,8 @@
+<p align="center">
+    <a href="https://pypi.org/miphreal/rofi-menu">
+        <img src="https://badge.fury.io/py/rofi-menu.svg" alt="Package version">
+    </a>
+</p>
 # rofi-menu: lib for building rofi menu via python
 
 Simple demo:
