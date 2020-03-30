@@ -12,7 +12,7 @@ This lib is a reference implementation with some extra "sugar".
 
 Simple demo:
 
-![custom menu](docs/demo.gif)
+![custom menu](https://github.com/miphreal/python-rofi-menu/raw/master/docs/demo.gif)
 
 ## Installation
 
@@ -79,4 +79,4 @@ $ rofi -modi mymenu:/path/to/example.py -show mymenu
 
 It'll result in
 
-![rofi menu](docs/menu-example.png)
+![rofi menu](https://github.com/miphreal/python-rofi-menu/raw/master/docs/menu-example.png)
