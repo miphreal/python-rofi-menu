@@ -16,6 +16,10 @@ class TouchpadItem(ShellItem):
         self.show_output = False
 
     @property
+    def icon(self):
+        return "input-touchpad-symbolic" if self.state else "touchpad-disabled-symbolic"
+
+    @property
     def command(self):
         action = "enable" if self.state else "disable"
         return rf"xinput {action} " + self.shell_cmd_device_id

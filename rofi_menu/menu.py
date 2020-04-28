@@ -30,6 +30,7 @@ class Operation:
 
 
 class Item:
+    icon = None
     text = None
 
     def __init__(self, text=None, *, flags=None):
@@ -165,7 +166,9 @@ class Menu:
         common_meta = meta.as_dict()
         _rofi_menu.extend(
             rofi_mode.menu_item(
-                text=text, meta_data={**common_meta, "text": text, "id": item.id}
+                text=text,
+                icon=item.icon,
+                meta_data={**common_meta, "text": text, "id": item.id},
             )
             for text, item in zip(rendered_items, self.items)
         )
