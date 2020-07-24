@@ -10,10 +10,11 @@ def _output_menu(data):
 
 
 async def main(menu, selected_item):
-    menu = menu.bind(prefix_path=[ROOT_MENU_ID])
     meta = MetaStore(selected_item)
 
-    if meta.selected_id:
+    menu = await menu.bind(meta=meta, prefix_path=[ROOT_MENU_ID])
+
+    if selected_item:
         op = await menu.handle_select(meta.selected_id, meta)
 
         if op.code == OP_OUTPUT:

@@ -1,11 +1,11 @@
 import asyncio
-from collections import namedtuple
 
 from rofi_menu import constants, rofi_mode
 
 
 class MetaStore:
     def __init__(self, selected_item):
+        self.raw_input = selected_item
         self._meta = rofi_mode.parse_meta(selected_item)
 
     @property
@@ -44,9 +44,14 @@ class Item:
 
         self.loaded = False
 
-    def bind(self, menu, item_id):
+    def clone(self):
         obj = self.__class__()
         obj.__dict__.update(self.__dict__)
+        return obj
+
+    async def bind(self, menu, item_id, meta):
+        """Link item to concreate menu, assign an id and return "bound" element."""
+        obj = self.clone()
         obj.id = item_id
         obj.parent_menu = menu
         return obj
@@ -107,12 +112,15 @@ class NestedMenu(Item):
         super().__init__(text, flags=flags)
         self.sub_menu = menu or Menu()
 
-    def bind(self, menu, item_id):
-        obj = self.__class__()
-        obj.__dict__.update(self.__dict__)
+    async def bind(self, menu, item_id, meta):
+        """
+        Link item to concreate menu, assign an id, initiate linking for submenu
+        and return "bound" element.
+        """
+        obj = self.clone()
         obj.id = item_id
         obj.parent_menu = menu
-        obj.sub_menu = self.sub_menu.bind(item_id)
+        obj.sub_menu = await self.sub_menu.bind(prefix_path=item_id, meta=meta)
         return obj
 
     async def on_select(self, item_id, meta):
@@ -140,13 +148,24 @@ class Menu:
         self.prompt = prompt or self.prompt
         self.items = items or self.items
 
-    def bind(self, prefix_path):
+    def clone(self):
         obj = self.__class__()
-        obj.items = [
-            item.bind(menu=obj, item_id=[*prefix_path, str(i)])
-            for i, item in enumerate(self.items)
-        ]
+        obj.__dict__.update(self.__dict__)
         return obj
+
+    async def bind(self, prefix_path, meta):
+        """Link all nested items to the current menu and return "bound" element."""
+        items = await self.generate_menu_items(prefix_path=prefix_path, meta=meta)
+        # generate bound items
+        obj = self.clone()
+        obj.items = await asyncio.gather(*[
+            item.bind(menu=obj, item_id=[*prefix_path, str(item_identity)], meta=meta)
+            for item_identity, item in items
+        ])
+        return obj
+
+    async def generate_menu_items(self, prefix_path, meta):
+        return enumerate(self.items)
 
     async def pre_render(self, meta):
         pass
