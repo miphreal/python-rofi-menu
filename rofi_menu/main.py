@@ -3,32 +3,24 @@ import sys
 
 from rofi_menu.constants import ROOT_MENU_ID, OP_EXIT, OP_OUTPUT
 from rofi_menu.menu import MetaStore, Menu
-from rofi_menu.session import FileSession
+from rofi_menu.session import FileSession, session_middleware
 
 
 def _output_menu(data: str) -> None:
     sys.stdout.write(data)
 
 
-async def main(menu: Menu, selected_item: str, session_store = None) -> None:
-    session = FileSession() if session_store is None else session_store
-    await session.load()
+async def main(menu: Menu, meta: MetaStore) -> None:
+    menu = await menu.build(menu_id=[ROOT_MENU_ID], meta=meta)
 
-    if not selected_item:
-        # first run of the script (no passed params) => we can start new session
-        session.clear()
-        await session.save()
-
-    meta = MetaStore(selected_item, session=session)
-
-    menu = await menu.bind(meta=meta, prefix_path=[ROOT_MENU_ID])
-
-    if selected_item:
+    if meta.raw_script_input:
         if meta.selected_id:
-            op = await menu.propagate_select(meta.selected_id, meta)
+            # User selected a menu item, so we'll need to find corresponding
+            # menu item and delegate handling of selection.
+            op = await menu.propagate_select(meta)
         else:
-            last_selected_menu_id = session.get("last_selected_menu", None)
-            op = await menu.propagate_user_input(last_selected_menu_id, meta.user_input, meta)
+            # User entered a text and hasn't selected any menu item.
+            op = await menu.propagate_user_input(meta)
 
         if op.code == OP_OUTPUT:
             _output_menu(op.data)
@@ -39,8 +31,17 @@ async def main(menu: Menu, selected_item: str, session_store = None) -> None:
     else:
         _output_menu(await menu.handle_render(meta))
 
-    await session.save()
 
+def run(menu: Menu, stateful: bool=True, middlewares=None) -> None:
+    """Shortcut for running menu generation."""
+    meta = MetaStore(sys.argv[1] if len(sys.argv) > 1 else None)
 
-def run(menu: Menu) -> None:
-    asyncio.run(main(menu, sys.argv[1] if len(sys.argv) > 1 else None))
+    middlewares = list(middlewares or [])
+    if stateful:
+        middlewares.append(session_middleware(FileSession))
+
+    handler = main
+    for middleware in middlewares:
+        handler = middleware(handler)
+
+    asyncio.run(handler(menu=menu, meta=meta))

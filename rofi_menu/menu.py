@@ -4,10 +4,9 @@ from rofi_menu import constants, rofi_mode
 
 
 class MetaStore:
-    def __init__(self, selected_item, session):
-        self.session = session
-        self.raw_input = selected_item
-        self._meta = rofi_mode.parse_meta(selected_item)
+    def __init__(self, raw_script_input):
+        self.raw_script_input = raw_script_input
+        self._meta = rofi_mode.parse_meta(raw_script_input)
 
     @property
     def selected_id(self):
@@ -15,7 +14,7 @@ class MetaStore:
 
     @property
     def user_input(self):
-        return self.raw_input if not self._meta else None
+        return self.raw_script_input if not self._meta else None
 
     def get_state(self, item_id):
         return self._meta.get(".".join(item_id))
@@ -38,27 +37,31 @@ class Item:
     icon = None
     text = None
 
-    def __init__(self, text=None, *, flags=None):
+    def __init__(self, text=None, *, flags=None, item_id=None):
         self.text = text or self.text
         self.flags = flags or set()
+        self.id = item_id
+
+        self.state = None
+        self.loaded = False
 
         # filled after attaching to menu
-        self.id = None
         self.parent_menu = None
-        self.state = None
-
-        self.loaded = False
 
     def clone(self):
         obj = self.__class__()
         obj.__dict__.update(self.__dict__)
         return obj
 
-    async def bind(self, menu, item_id, meta):
-        """Link item to concreate menu, assign an id and return "bound" element."""
+    async def build(self, parent_menu, item_id, meta):
+        """
+        Build a menu item.
+
+        It also links item to concreate menu, assigns an id and returns "bound" element.
+        """
         obj = self.clone()
-        obj.id = item_id
-        obj.parent_menu = menu
+        obj.id = obj.id or (item_id if isinstance(item_id, list) else [*parent_menu.id, item_id])
+        obj.parent_menu = parent_menu
         return obj
 
     async def load(self, meta):
@@ -87,15 +90,15 @@ class Item:
         if not self.loaded:
             await self.load(meta)
 
-    async def on_select(self, item_id, meta):
+    async def on_select(self, meta):
         return Operation(constants.OP_REFRESH_MENU)
 
     async def post_select(self, meta):
         await self.store(meta)
 
-    async def handle_select(self, item_id, meta):
+    async def handle_select(self, meta):
         await self.pre_select(meta)
-        op = await self.on_select(item_id, meta)
+        op = await self.on_select(meta)
         await self.post_select(meta)
         return op
 
@@ -103,64 +106,59 @@ class Item:
 class BackItem(Item):
     text = ".."
 
-    async def on_select(self, item_id, meta):
+    async def on_select(self, meta):
         return Operation(constants.OP_BACK_TO_PARENT_MENU)
 
 
 class ExitItem(Item):
-    async def on_select(self, item_id, meta):
+    async def on_select(self, meta):
         return Operation(constants.OP_EXIT)
 
 
 class NestedMenu(Item):
-    def __init__(self, text=None, menu=None, *, flags=None):
-        super().__init__(text, flags=flags)
+    def __init__(self, text=None, menu=None, *, flags=None, item_id=None):
+        super().__init__(text, flags=flags, item_id=item_id)
         self.sub_menu = menu or Menu()
 
-    async def bind(self, menu, item_id, meta):
+    async def build(self, parent_menu, item_id, meta):
         """
-        Link item to concreate menu, assign an id, initiate linking for submenu
-        and return "bound" element.
+        Build a menu item that can handle nested menu.
+
+        It also links item to concreate menu, assigns an id, triggers
+        building for submenu and return "bound" element.
         """
-        obj = self.clone()
-        obj.id = item_id
-        obj.parent_menu = menu
-        obj.sub_menu = await self.sub_menu.bind(prefix_path=item_id, meta=meta)
+        obj = await super().build(parent_menu=parent_menu, item_id=item_id, meta=meta)
+        obj.sub_menu = await self.sub_menu.build(menu_id=obj.id, meta=meta)
         return obj
 
-    async def handle_select(self, item_id, meta):
-        if item_id == self.id:
+    async def handle_select(self, meta):
+        if meta.selected_id == self.id:
             await self.pre_select(meta)
-            op = await self.on_select(item_id, meta)
+            op = await self.on_select(meta)
             await self.post_select(meta)
-            meta.session['last_selected_menu'] = self.sub_menu.id
 
         else:
-            op = await self.sub_menu.propagate_select(item_id, meta)
+            op = await self.sub_menu.propagate_select(meta)
 
         if op.code == constants.OP_REFRESH_MENU:
-            meta.session['last_selected_menu'] = self.sub_menu.id
-            return Operation(constants.OP_OUTPUT, await self.sub_menu.render(meta))
+            return Operation(constants.OP_OUTPUT, await self.sub_menu.handle_render(meta))
 
         if op.code == constants.OP_BACK_TO_PARENT_MENU:
-            meta.session['last_selected_menu'] = self.parent_menu.id
-            return Operation(constants.OP_OUTPUT, await self.parent_menu.render(meta))
+            return Operation(constants.OP_OUTPUT, await self.parent_menu.handle_render(meta))
 
         return op
 
-    async def on_select(self, item_id, meta):
-        return Operation(constants.OP_OUTPUT, await self.sub_menu.render(meta))
+    async def on_select(self, meta):
+        return Operation(constants.OP_OUTPUT, await self.sub_menu.handle_render(meta))
 
-    async def propagate_user_input(self, menu_id, user_input, meta):
-        op = await self.sub_menu.propagate_user_input(menu_id, user_input, meta)
+    async def propagate_user_input(self, meta):
+        op = await self.sub_menu.propagate_user_input(meta)
 
         if op.code == constants.OP_REFRESH_MENU:
-            meta.session['last_selected_menu'] = self.sub_menu.id
-            return Operation(constants.OP_OUTPUT, await self.sub_menu.render(meta))
+            return Operation(constants.OP_OUTPUT, await self.sub_menu.handle_render(meta))
 
         if op.code == constants.OP_BACK_TO_PARENT_MENU:
-            meta.session['last_selected_menu'] = self.parent_menu.id
-            return Operation(constants.OP_OUTPUT, await self.parent_menu.render(meta))
+            return Operation(constants.OP_OUTPUT, await self.parent_menu.handle_render(meta))
 
         return op
 
@@ -169,30 +167,31 @@ class Menu:
     prompt = "menu"
     items = ()
 
-    def __init__(self, prompt=None, items=None):
+    def __init__(self, prompt=None, items=None, menu_id=None):
         self.prompt = prompt or self.prompt
         self.items = items or self.items
-        self.id = None
+        self.id = menu_id
 
     def clone(self):
         obj = self.__class__()
         obj.__dict__.update(self.__dict__)
         return obj
 
-    async def bind(self, prefix_path, meta):
+    async def build(self, menu_id, meta):
         """Link all nested items to the current menu and return "bound" element."""
-        self.id = prefix_path
-        items = await self.generate_menu_items(prefix_path=prefix_path, meta=meta)
+        self.id = menu_id
+
+        items = await self.generate_menu_items(meta=meta)
         # generate bound items
         obj = self.clone()
         obj.items = await asyncio.gather(*[
-            item.bind(menu=obj, item_id=[*prefix_path, str(item_identity)], meta=meta)
-            for item_identity, item in items
+            item.build(parent_menu=obj, item_id=item.id or [*obj.id, str(item_index)], meta=meta)
+            for item_index, item in enumerate(items)
         ])
         return obj
 
-    async def generate_menu_items(self, prefix_path, meta):
-        return enumerate(self.items)
+    async def generate_menu_items(self, meta):
+        return self.items
 
     async def pre_render(self, meta):
         pass
@@ -222,7 +221,8 @@ class Menu:
         return rofi_mode.render_menu(self.prompt, *_rofi_menu)
 
     async def post_render(self, meta):
-        pass
+        if hasattr(meta, "session"):
+            meta.session["last_active_menu"] = self.id
 
     async def handle_render(self, meta):
         await self.pre_render(meta)
@@ -230,35 +230,40 @@ class Menu:
         await self.post_render(meta)
         return text
 
-    async def propagate_select(self, item_id, meta):
+    async def propagate_select(self, meta):
+        item_id = meta.selected_id
+
         for item in self.items:
             if item.id == item_id[: len(item.id)]:
-                op = await item.handle_select(item_id, meta)
+                op = await item.handle_select(meta)
 
                 if op.code == constants.OP_REFRESH_MENU:
-                    return Operation(constants.OP_OUTPUT, await self.render(meta))
+                    return Operation(constants.OP_OUTPUT, await self.handle_render(meta))
 
                 return op
 
-        return Operation(constants.OP_OUTPUT, await self.render(meta))
+        return Operation(constants.OP_OUTPUT, await self.handle_render(meta))
 
-    async def propagate_user_input(self, menu_id, user_input, meta):
-        op = None
+    async def propagate_user_input(self, meta):
+        menu_id = meta.session.get("last_active_menu") if hasattr(meta, "session") else None
+
+        op = Operation(constants.OP_REFRESH_MENU)
+
         if menu_id is None or menu_id == self.id:
-            op = await self.on_user_input(user_input, meta)
+            # Found the target menu which should handle user input.
+            op = await self.on_user_input(meta)
 
         else:
+            # Need to propagate user input down the menu tree.
             for item in self.items:
                 if isinstance(item, NestedMenu) and item.id == menu_id[: len(item.id)]:
-                    op = await item.propagate_user_input(menu_id, user_input, meta)
+                    op = await item.propagate_user_input(meta)
+                    break
 
-        if op:
-            if op.code == constants.OP_REFRESH_MENU:
-                return Operation(constants.OP_OUTPUT, await self.render(meta))
-            return op
+        if op.code == constants.OP_REFRESH_MENU:
+            return Operation(constants.OP_OUTPUT, await self.handle_render(meta))
 
-        return Operation(constants.OP_OUTPUT, await self.render(meta))
+        return op
 
-    async def on_user_input(self, user_input, meta):
-        raise Exception('bare' + user_input)
+    async def on_user_input(self, meta):
         return Operation(constants.OP_REFRESH_MENU)
