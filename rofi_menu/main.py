@@ -38,7 +38,7 @@ def run(menu: Menu, stateful: bool=True, middlewares=None) -> None:
 
     middlewares = list(middlewares or [])
     if stateful:
-        middlewares.append(session_middleware(FileSession))
+        middlewares.append(session_middleware(FileSession()))
 
     handler = main
     for middleware in middlewares:

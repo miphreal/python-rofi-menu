@@ -37,13 +37,17 @@ class Item:
     icon = None
     text = None
 
-    def __init__(self, text=None, *, flags=None, item_id=None):
-        self.text = text or self.text
-        self.flags = flags or set()
-        self.id = item_id
+    def __init__(self, text=None, **kwargs):
+        self.id = kwargs.get("item_id")
 
+        # per menu-item state
         self.state = None
         self.loaded = False
+
+        # render options
+        self.text = text or self.text
+        self.icon = kwargs.get("icon", self.icon)
+        self.flags = kwargs.get("flags") or set()
 
         # filled after attaching to menu
         self.parent_menu = None
@@ -116,8 +120,8 @@ class ExitItem(Item):
 
 
 class NestedMenu(Item):
-    def __init__(self, text=None, menu=None, *, flags=None, item_id=None):
-        super().__init__(text, flags=flags, item_id=item_id)
+    def __init__(self, text=None, menu=None, **kwargs):
+        super().__init__(text, **kwargs)
         self.sub_menu = menu or Menu()
 
     async def build(self, parent_menu, item_id, meta):
@@ -167,10 +171,10 @@ class Menu:
     prompt = "menu"
     items = ()
 
-    def __init__(self, prompt=None, items=None, menu_id=None):
+    def __init__(self, prompt=None, items=None, **kwargs):
+        self.id = kwargs.get("menu_id")
         self.prompt = prompt or self.prompt
         self.items = items or self.items
-        self.id = menu_id
 
     def clone(self):
         obj = self.__class__()
@@ -178,17 +182,17 @@ class Menu:
         return obj
 
     async def build(self, menu_id, meta):
-        """Link all nested items to the current menu and return "bound" element."""
-        self.id = menu_id
-
-        items = await self.generate_menu_items(meta=meta)
-        # generate bound items
         obj = self.clone()
-        obj.items = await asyncio.gather(*[
-            item.build(parent_menu=obj, item_id=item.id or [*obj.id, str(item_index)], meta=meta)
+        obj.id = menu_id
+        obj.items = await obj.build_menu_items(meta=meta)
+        return obj
+
+    async def build_menu_items(self, meta):
+        items = await self.generate_menu_items(meta=meta)
+        return await asyncio.gather(*[
+            item.build(parent_menu=self, item_id=item.id or [*self.id, str(item_index)], meta=meta)
             for item_index, item in enumerate(items)
         ])
-        return obj
 
     async def generate_menu_items(self, meta):
         return self.items

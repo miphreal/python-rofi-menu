@@ -15,9 +15,8 @@ class TouchpadItem(ShellItem):
         self.detached = False
         self.show_output = False
 
-    @property
-    def icon(self):
-        return "input-touchpad-symbolic" if self.state else "touchpad-disabled-symbolic"
+    def get_icon(self, is_touchpad_enabled: bool):
+        return "input-touchpad-symbolic" if is_touchpad_enabled else "touchpad-disabled-symbolic"
 
     @property
     def command(self):
@@ -32,6 +31,7 @@ class TouchpadItem(ShellItem):
         )
         data = (await proc.stdout.read()).decode("utf-8")
         self.state = bool(self.re_enabled_device.search(data))
+        self.icon = self.get_icon(is_touchpad_enabled=self.state)
 
     async def render(self, *args, **kwargs):
         state_on = '<span background="green"><b>ON</b></span>'

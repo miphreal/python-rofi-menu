@@ -8,11 +8,10 @@ import sys
 import typing
 
 
-def session_middleware(session_class):
+def session_middleware(session, clear_session: bool = True):
     """Handle loading and persisting session."""
 
     def wrap_middleware(func):
-        session = session_class()
 
         async def wrapper(**kwargs):
             meta = kwargs['meta']
@@ -20,7 +19,7 @@ def session_middleware(session_class):
 
             await session.load()
 
-            if meta.raw_script_input is None:
+            if clear_session and meta.raw_script_input is None:
                 # First run of the script (no passed params) => we can start new session
                 session.clear()
 

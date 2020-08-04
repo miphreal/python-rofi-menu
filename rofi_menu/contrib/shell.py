@@ -15,7 +15,7 @@ class ShellItem(Item):
     def command(self):
         return self._command
 
-    async def on_select(self, item_id, meta):
+    async def on_select(self, meta):
         command = f"nohup {self.command}" if self.detached else self.command
         proc = await asyncio.create_subprocess_shell(
             command,
