@@ -99,7 +99,7 @@ It'll result in
 ### Advanced example
 
 
-```
+```python
 #!/home/user/pyenv/versions/rofi/bin/python
 import asyncio
 from datetime import datetime
