@@ -33,7 +33,7 @@ def menu_active(num: int) -> str:
 
 
 def menu_no_input(val: bool = True) -> str:
-    return "\0no-custom\x1f" + "true" if val else "false"
+    return "\0no-custom\x1f" + ("true" if val else "false")
 
 
 def menu_entry(text, **fields):

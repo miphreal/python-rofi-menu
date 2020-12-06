@@ -249,10 +249,8 @@ class Menu:
         _rofi_menu = [
             meta.rofi_mode.menu_prompt(self.prompt),
             meta.rofi_mode.menu_enable_markup(),
+            meta.rofi_mode.menu_no_input(not self.allow_user_input),
         ]
-
-        if not self.allow_user_input:
-            _rofi_menu.append(meta.rofi_mode.menu_no_input())
 
         for num, item in enumerate(self.items):
             if constants.FLAG_STYLE_ACTIVE in item.flags:

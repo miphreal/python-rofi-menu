@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- Fixed enabling/disabling handling input for nested menus
+
 ## 0.5.0
 
 - Added support for rofi 1.6 (handle correctly ROFI_RETV, ROFI_INFO)
