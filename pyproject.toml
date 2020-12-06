@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rofi-menu"
-version = "0.4.0"
+version = "0.5.0"
 description = "Create rofi menus via python"
 authors = ["miphreal <miphreal@gmail.com>"]
 license = "MIT"
