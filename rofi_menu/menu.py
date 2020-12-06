@@ -1,12 +1,24 @@
 import asyncio
+import sys
+import json
 
-from rofi_menu import constants, rofi_mode
+from rofi_menu import constants
+from rofi_menu import rofi_mode
+from rofi_menu.rofi_mode import get_rofi_mode
 
 
 class MetaStore:
-    def __init__(self, raw_script_input):
+    def __init__(
+        self, raw_script_input, rofi_version: str = "1.5", debug: bool = False
+    ):
+        self.rofi_mode = get_rofi_mode(rofi_version)
+        self.debug = debug
         self.raw_script_input = raw_script_input
-        self._meta = rofi_mode.parse_meta(raw_script_input)
+        self._meta = self.rofi_mode.parse_meta(raw_script_input)
+
+        if debug:
+            debug_meta = json.dumps(self._meta, indent=2, sort_keys=True)
+            sys.stderr.write(f"* Parsed meta:\n{debug_meta}\n")
 
     @property
     def selected_id(self):
@@ -36,6 +48,8 @@ class Operation:
 class Item:
     icon = None
     text = None
+    searchable_text = None
+    nonselectable = False
 
     def __init__(self, text=None, **kwargs):
         self.id = kwargs.get("item_id")
@@ -47,6 +61,8 @@ class Item:
         # render options
         self.text = text or self.text
         self.icon = kwargs.get("icon", self.icon)
+        self.searchable_text = kwargs.get("searchable_text", self.searchable_text)
+        self.nonselectable = kwargs.get("nonselectable", self.nonselectable)
         self.flags = kwargs.get("flags") or set()
 
         # filled after attaching to menu
@@ -64,7 +80,9 @@ class Item:
         It also links item to concreate menu, assigns an id and returns "bound" element.
         """
         obj = self.clone()
-        obj.id = obj.id or (item_id if isinstance(item_id, list) else [*parent_menu.id, item_id])
+        obj.id = obj.id or (
+            item_id if isinstance(item_id, list) else [*parent_menu.id, item_id]
+        )
         obj.parent_menu = parent_menu
         return obj
 
@@ -107,6 +125,11 @@ class Item:
         return op
 
 
+class Delimiter(Item):
+    text = "<span foreground='gray' strikethrough='true'>          </span>"
+    nonselectable = True
+
+
 class BackItem(Item):
     text = ".."
 
@@ -145,10 +168,14 @@ class NestedMenu(Item):
             op = await self.sub_menu.propagate_select(meta)
 
         if op.code == constants.OP_REFRESH_MENU:
-            return Operation(constants.OP_OUTPUT, await self.sub_menu.handle_render(meta))
+            return Operation(
+                constants.OP_OUTPUT, await self.sub_menu.handle_render(meta)
+            )
 
         if op.code == constants.OP_BACK_TO_PARENT_MENU:
-            return Operation(constants.OP_OUTPUT, await self.parent_menu.handle_render(meta))
+            return Operation(
+                constants.OP_OUTPUT, await self.parent_menu.handle_render(meta)
+            )
 
         return op
 
@@ -159,10 +186,14 @@ class NestedMenu(Item):
         op = await self.sub_menu.propagate_user_input(meta)
 
         if op.code == constants.OP_REFRESH_MENU:
-            return Operation(constants.OP_OUTPUT, await self.sub_menu.handle_render(meta))
+            return Operation(
+                constants.OP_OUTPUT, await self.sub_menu.handle_render(meta)
+            )
 
         if op.code == constants.OP_BACK_TO_PARENT_MENU:
-            return Operation(constants.OP_OUTPUT, await self.parent_menu.handle_render(meta))
+            return Operation(
+                constants.OP_OUTPUT, await self.parent_menu.handle_render(meta)
+            )
 
         return op
 
@@ -170,11 +201,15 @@ class NestedMenu(Item):
 class Menu:
     prompt = "menu"
     items = ()
+    allow_user_input = False
 
-    def __init__(self, prompt=None, items=None, **kwargs):
+    def __init__(self, prompt=None, items=None, allow_user_input=None, **kwargs):
         self.id = kwargs.get("menu_id")
         self.prompt = prompt or self.prompt
         self.items = items or self.items
+        self.allow_user_input = (
+            allow_user_input if allow_user_input is not None else self.allow_user_input
+        )
 
     def clone(self):
         obj = self.__class__()
@@ -189,10 +224,16 @@ class Menu:
 
     async def build_menu_items(self, meta):
         items = await self.generate_menu_items(meta=meta)
-        return await asyncio.gather(*[
-            item.build(parent_menu=self, item_id=item.id or [*self.id, str(item_index)], meta=meta)
-            for item_index, item in enumerate(items)
-        ])
+        return await asyncio.gather(
+            *[
+                item.build(
+                    parent_menu=self,
+                    item_id=item.id or [*self.id, str(item_index)],
+                    meta=meta,
+                )
+                for item_index, item in enumerate(items)
+            ]
+        )
 
     async def generate_menu_items(self, meta):
         return self.items
@@ -205,24 +246,33 @@ class Menu:
             *[item.handle_render(meta) for item in self.items]
         )
 
-        _rofi_menu = []
+        _rofi_menu = [
+            meta.rofi_mode.menu_prompt(self.prompt),
+            meta.rofi_mode.menu_enable_markup(),
+        ]
+
+        if not self.allow_user_input:
+            _rofi_menu.append(meta.rofi_mode.menu_no_input())
+
         for num, item in enumerate(self.items):
             if constants.FLAG_STYLE_ACTIVE in item.flags:
-                _rofi_menu.append(rofi_mode.menu_active(num))
+                _rofi_menu.append(meta.rofi_mode.menu_active(num))
             if constants.FLAG_STYLE_URGENT in item.flags:
-                _rofi_menu.append(rofi_mode.menu_urgent(num))
+                _rofi_menu.append(meta.rofi_mode.menu_urgent(num))
 
         common_meta = meta.as_dict()
         _rofi_menu.extend(
-            rofi_mode.menu_item(
+            meta.rofi_mode.menu_item(
                 text=text,
                 icon=item.icon,
+                searchable_text=item.searchable_text,
+                nonselectable=item.nonselectable,
                 meta_data={**common_meta, "text": text, "id": item.id},
             )
             for text, item in zip(rendered_items, self.items)
         )
 
-        return rofi_mode.render_menu(self.prompt, *_rofi_menu)
+        return meta.rofi_mode.render_menu(self.prompt, *_rofi_menu)
 
     async def post_render(self, meta):
         if hasattr(meta, "session"):
@@ -242,14 +292,18 @@ class Menu:
                 op = await item.handle_select(meta)
 
                 if op.code == constants.OP_REFRESH_MENU:
-                    return Operation(constants.OP_OUTPUT, await self.handle_render(meta))
+                    return Operation(
+                        constants.OP_OUTPUT, await self.handle_render(meta)
+                    )
 
                 return op
 
         return Operation(constants.OP_OUTPUT, await self.handle_render(meta))
 
     async def propagate_user_input(self, meta):
-        menu_id = meta.session.get("last_active_menu") if hasattr(meta, "session") else None
+        menu_id = (
+            meta.session.get("last_active_menu") if hasattr(meta, "session") else None
+        )
 
         op = Operation(constants.OP_REFRESH_MENU)
 

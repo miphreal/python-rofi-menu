@@ -1,4 +1,4 @@
-#!/home/user/pyenv/versions/rofi/bin/python
+#!/home/user/.pyenv/versions/rofi/bin/python
 import rofi_menu
 
 
@@ -8,6 +8,7 @@ class ProjectsMenu(rofi_menu.Menu):
         rofi_menu.BackItem(),
         rofi_menu.ShellItem("Project 1", "code-insiders ~/Develop/project1"),
         rofi_menu.ShellItem("Project 2", "code-insiders ~/Develop/project2"),
+        rofi_menu.Delimiter(),
         rofi_menu.ShellItem("Project X", "code-insiders ~/Develop/projectx"),
     ]
 
@@ -36,4 +37,4 @@ class MainMenu(rofi_menu.Menu):
 
 
 if __name__ == "__main__":
-    rofi_menu.run(MainMenu())
+    rofi_menu.run(MainMenu(), rofi_version="1.6", debug=True)

@@ -44,7 +44,7 @@ Assuming you installed `rofi-menu` into a virtual environment (let's say it's `~
 Make sure shebang points to the right python executable, e.g. `#!/home/user/pyenv/versions/rofi/bin/python`.
 
 ```python
-#!/home/user/pyenv/versions/rofi/bin/python
+#!/home/user/.pyenv/versions/rofi/bin/python
 import rofi_menu
 
 
@@ -82,13 +82,13 @@ class MainMenu(rofi_menu.Menu):
 
 
 if __name__ == "__main__":
-    rofi_menu.run(MainMenu())
+    rofi_menu.run(MainMenu(), rofi_version="1.6")  # change to 1.5 if you use older rofi version
 ```
 
 Run it as:
 
 ```sh
-$ rofi -modi mymenu:/path/to/example.py -show mymenu
+$ rofi -modi mymenu:/path/to/example.py -show mymenu -show-icons
 ```
 
 It'll result in
@@ -156,6 +156,8 @@ class CounterItem(rofi_menu.Item):
 
 
 class HandleUserInputMenu(rofi_menu.Menu):
+    allow_user_input = True
+
     class CustomItem(rofi_menu.Item):
         async def render(self, meta):
             entered_text = meta.session.get("text", "[ no text ]")
@@ -166,7 +168,6 @@ class HandleUserInputMenu(rofi_menu.Menu):
     async def on_user_input(self, meta):
         meta.session['text'] = meta.user_input
         return rofi_menu.Operation(rofi_menu.OP_REFRESH_MENU)
-
 
 
 main_menu = rofi_menu.Menu(
@@ -193,5 +194,3 @@ if __name__ == "__main__":
 - [ ] documentation of API
 - [ ] examples
 - [ ] tests
-- [ ] `nonselectable` and other new
-- [ ] check what ROFI_* envs can do

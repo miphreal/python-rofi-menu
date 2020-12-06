@@ -1,8 +1,11 @@
+"""
+Rofi script mode for version <=1.5
+"""
 import base64
 import json
 from typing import Optional
 
-from rofi_menu.constants import MENU_ITEM_META_DELIM
+MENU_ITEM_META_DELIM = "\r!"
 
 
 def render_menu(prompt: str, *items) -> str:
@@ -34,13 +37,21 @@ def menu_icon(text: str, icon: str) -> str:
     return f"{text}\0icon\x1f{icon}"
 
 
+def menu_no_input(val: bool = True) -> str:
+    return ""
+
+
 ##
 # Extending rofi
 # Add meta data along all menu items
 
 
 def menu_item(
-    text: str, icon: Optional[str] = None, meta_data: Optional[dict] = None
+    text: str,
+    icon: Optional[str] = None,
+    searchable_text: Optional[str] = None,
+    nonselectable: Optional[bool] = None,
+    meta_data: Optional[dict] = None,
 ) -> str:
     meta = json.dumps(meta_data)
     meta = base64.urlsafe_b64encode(meta.encode()).decode("utf8")
