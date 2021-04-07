@@ -1,8 +1,8 @@
 import abc
 import collections.abc
+import getpass
 import hashlib
 import json
-import os
 import pathlib
 import sys
 import typing
@@ -12,9 +12,8 @@ def session_middleware(session, clear_session: bool = True):
     """Handle loading and persisting session."""
 
     def wrap_middleware(func):
-
         async def wrapper(**kwargs):
-            meta = kwargs['meta']
+            meta = kwargs["meta"]
             meta.session = session
 
             await session.load()
@@ -29,6 +28,7 @@ def session_middleware(session, clear_session: bool = True):
                 await session.save()
 
         return wrapper
+
     return wrap_middleware
 
 
@@ -62,6 +62,7 @@ class BaseSession(collections.abc.MutableMapping):
 
 class InMemorySession(BaseSession):
     """Short living session."""
+
     async def load(self) -> None:
         pass
 
@@ -79,19 +80,19 @@ class FileSession(BaseSession):
 
     def _generate_filename(self) -> pathlib.Path:
         session_id_hash = hashlib.sha256()
-        session_id_hash.update(os.getlogin().encode('utf-8'))
-        session_id_hash.update(sys.argv[0].encode('utf-8'))
-        filename = session_id_hash.hexdigest() + '.json'
+        session_id_hash.update(getpass.getuser().encode("utf-8"))
+        session_id_hash.update(sys.argv[0].encode("utf-8"))
+        filename = session_id_hash.hexdigest() + ".json"
 
         return pathlib.Path(self._cache_folder).expanduser() / filename
 
     async def load(self) -> None:
         if self._filename.exists():
-            with open(self._filename, 'rt') as f:
+            with open(self._filename, "rt") as f:
                 self._session = json.load(f)
 
     async def save(self) -> None:
         if not self._filename.parent.exists():
             self._filename.parent.mkdir(parents=True)
-        with open(self._filename, 'wt') as f:
+        with open(self._filename, "wt") as f:
             json.dump(self._session, f)
