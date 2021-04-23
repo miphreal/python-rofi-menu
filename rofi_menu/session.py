@@ -71,7 +71,7 @@ class InMemorySession(BaseSession):
 
 
 class FileSession(BaseSession):
-    """Long living session that survives between scipt executions."""
+    """Long living session that survives between script executions."""
 
     def __init__(self, cache_folder: str = "~/.cache/rofi-menu"):
         super().__init__()
