@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6
+
+- Fixed #6: os.getlogin() is not reliable on some platforms (thanks @dnalor for reporting the issue)
+- Added `contrib/desktop.py` to generate application menu from `*.desktop` files
+
 ## 0.5.1
 
 - Fixed enabling/disabling handling input for nested menus
