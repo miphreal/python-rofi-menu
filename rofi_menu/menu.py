@@ -71,6 +71,22 @@ class Operation:
         self.code = code
         self.data = data
 
+    @classmethod
+    def output_menu(cls, text: str):
+        return cls(constants.OP_OUTPUT, text)
+
+    @classmethod
+    def back_to_parent_menu(cls):
+        return cls(constants.OP_BACK_TO_PARENT_MENU)
+
+    @classmethod
+    def refresh_menu(cls):
+        return cls(constants.OP_REFRESH_MENU)
+
+    @classmethod
+    def exit(cls):
+        return cls(constants.OP_EXIT)
+
 
 class Item:
     id: ItemId
@@ -148,7 +164,7 @@ class Item:
             await self.load(meta)
 
     async def on_select(self, meta: MetaStore):
-        return Operation(constants.OP_REFRESH_MENU)
+        return Operation.refresh_menu()
 
     async def post_select(self, meta: MetaStore):
         await self.store(meta)
@@ -169,12 +185,12 @@ class BackItem(Item):
     text = ".."
 
     async def on_select(self, meta: MetaStore):
-        return Operation(constants.OP_BACK_TO_PARENT_MENU)
+        return Operation.back_to_parent_menu()
 
 
 class ExitItem(Item):
     async def on_select(self, meta: MetaStore):
-        return Operation(constants.OP_EXIT)
+        return Operation.exit()
 
 
 class NestedMenu(Item):
@@ -205,32 +221,26 @@ class NestedMenu(Item):
             op = await self.sub_menu.propagate_select(meta)
 
         if op.code == constants.OP_REFRESH_MENU:
-            return Operation(
-                constants.OP_OUTPUT, await self.sub_menu.handle_render(meta)
-            )
+            return Operation.output_menu(await self.sub_menu.handle_render(meta))
 
         if op.code == constants.OP_BACK_TO_PARENT_MENU:
-            return Operation(
-                constants.OP_OUTPUT,
+            return Operation.output_menu(
                 await cast(Menu, self.parent_menu).handle_render(meta),
             )
 
         return op
 
     async def on_select(self, meta: MetaStore):
-        return Operation(constants.OP_OUTPUT, await self.sub_menu.handle_render(meta))
+        return Operation.output_menu(await self.sub_menu.handle_render(meta))
 
     async def propagate_user_input(self, meta: MetaStore):
         op = await self.sub_menu.propagate_user_input(meta)
 
         if op.code == constants.OP_REFRESH_MENU:
-            return Operation(
-                constants.OP_OUTPUT, await self.sub_menu.handle_render(meta)
-            )
+            return Operation.output_menu(await self.sub_menu.handle_render(meta))
 
         if op.code == constants.OP_BACK_TO_PARENT_MENU:
-            return Operation(
-                constants.OP_OUTPUT,
+            return Operation.output_menu(
                 await cast(Menu, self.parent_menu).handle_render(meta),
             )
 
@@ -319,9 +329,7 @@ class Menu:
         return meta.rofi_mode.render_menu(*_rofi_menu)
 
     async def post_render(self, meta: MetaStore):
-        session = getattr(meta, "session", None)
-        if session:
-            session["last_active_menu"] = self.id
+        meta.state_manager["last_active_menu"] = self.id
 
     async def handle_render(self, meta: MetaStore):
         await self.pre_render(meta)
@@ -337,19 +345,16 @@ class Menu:
                 op = await item.handle_select(meta)
 
                 if op.code == constants.OP_REFRESH_MENU:
-                    return Operation(
-                        constants.OP_OUTPUT, await self.handle_render(meta)
-                    )
+                    return Operation.output_menu(await self.handle_render(meta))
 
                 return op
 
-        return Operation(constants.OP_OUTPUT, await self.handle_render(meta))
+        return Operation.output_menu(await self.handle_render(meta))
 
     async def propagate_user_input(self, meta: MetaStore) -> Operation:
-        session = getattr(meta, "session", None)
-        menu_id = session.get("last_active_menu") if session else None
+        menu_id = meta.state_manager.get("last_active_menu", None)
 
-        op = Operation(constants.OP_REFRESH_MENU)
+        op = Operation.refresh_menu()
 
         if menu_id is None or menu_id == self.id:
             # Found the target menu which should handle user input.
@@ -363,9 +368,9 @@ class Menu:
                     break
 
         if op.code == constants.OP_REFRESH_MENU:
-            return Operation(constants.OP_OUTPUT, await self.handle_render(meta))
+            return Operation.output_menu(await self.handle_render(meta))
 
         return op
 
     async def on_user_input(self, meta: MetaStore):
-        return Operation(constants.OP_REFRESH_MENU)
+        return Operation.refresh_menu()

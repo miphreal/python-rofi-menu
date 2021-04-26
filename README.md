@@ -110,28 +110,31 @@ import rofi_menu
 
 class OutputSomeTextItem(rofi_menu.Item):
     """Output arbitrary text on selection"""
+
     async def on_select(self, meta):
         # any python code
         await asyncio.sleep(0.1)
-        return rofi_menu.Operation(rofi_menu.OP_OUTPUT, (
+        return rofi_menu.Operation.output_menu(
             "💢 simple\n"
             "💥 multi-\n"
             "💫 <b>line</b>\n"
-            "💣 <i>text</i>\n"
-        ))
+            "💣 <i>text</i>\n",
+        )
 
 
 class DoAndExitItem(rofi_menu.Item):
     """Do something and exit"""
+
     async def on_select(self, meta):
-        os.system('notify-send msg')
-        return rofi_menu.Operation(rofi_menu.OP_EXIT)
+        os.system("notify-send msg")
+        return rofi_menu.Operation.exit()
 
 
 class CurrentDatetimeItem(rofi_menu.Item):
     """Show current datetime inside menu item"""
+
     async def load(self, meta):
-        self.state = datetime.now().strftime('%A %d. %B %Y (%H:%M:%S)')
+        self.state = datetime.now().strftime("%A %d. %B %Y (%H:%M:%S)")
 
     async def render(self, meta):
         return f"🕑 {self.state}"
@@ -139,19 +142,20 @@ class CurrentDatetimeItem(rofi_menu.Item):
 
 class CounterItem(rofi_menu.Item):
     """Increment counter on selection"""
+
     async def load(self, meta):
         await super().load(meta)
         self.state = self.state or 0
-        meta.session.setdefault("counter_total", 0)
+        meta.state_manager.setdefault("counter_total", 0)
 
     async def on_select(self, meta):
         self.state += 1
-        meta.session["counter_total"] += 1
+        meta.state_manager["counter_total"] += 1
         return await super().on_select(meta)
 
     async def render(self, meta):
         per_menu_item = self.state
-        total = meta.session["counter_total"]
+        total = meta.state_manager["counter_total"]
         return f"🏃 Selected #{per_menu_item} time(s) (across menu items #{total})"
 
 
@@ -160,14 +164,14 @@ class HandleUserInputMenu(rofi_menu.Menu):
 
     class CustomItem(rofi_menu.Item):
         async def render(self, meta):
-            entered_text = meta.session.get("text", "[ no text ]")
+            entered_text = meta.state_manager.get("text", "[ no text ]")
             return f"You entered: {entered_text}"
 
     items = [CustomItem()]
 
     async def on_user_input(self, meta):
-        meta.session['text'] = meta.user_input
-        return rofi_menu.Operation(rofi_menu.OP_REFRESH_MENU)
+        meta.state_manager["text"] = meta.user_input
+        return rofi_menu.Operation.refresh_menu()
 
 
 main_menu = rofi_menu.Menu(
