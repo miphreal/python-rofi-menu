@@ -1,10 +1,13 @@
 import asyncio
 import re
 
+from rofi_menu.menu import MetaStore
 from rofi_menu.contrib.shell import ShellItem
 
 
 class TouchpadItem(ShellItem):
+    state: bool
+
     shell_cmd_device_id = (
         rf'$(xinput list | grep -Po "Touchpad.*id=\d+" | grep -Po "\d+")'
     )
@@ -27,15 +30,16 @@ class TouchpadItem(ShellItem):
         action = "enable" if self.state else "disable"
         return rf"xinput {action} " + self.shell_cmd_device_id
 
-    async def load(self, meta):
+    async def load(self, meta: MetaStore):
         proc = await asyncio.create_subprocess_shell(
             rf"xinput list-props " + self.shell_cmd_device_id,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
         )
-        data = (await proc.stdout.read()).decode("utf-8")
-        self.state = bool(self.re_enabled_device.search(data))
-        self.icon = self.get_icon(is_touchpad_enabled=self.state)
+        if proc is not None:
+            data = (await proc.stdout.read()).decode("utf-8")
+            self.state = bool(self.re_enabled_device.search(data))
+            self.icon = self.get_icon(is_touchpad_enabled=self.state)
 
     async def render(self, *args, **kwargs):
         state_on = '<span background="green"><b>ON</b></span>'

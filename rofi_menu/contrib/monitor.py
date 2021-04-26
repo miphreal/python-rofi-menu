@@ -1,4 +1,4 @@
-from rofi_menu.menu import NestedMenu, Menu
+from rofi_menu.menu import Menu
 from .shell import ShellItem
 
 
@@ -33,9 +33,9 @@ class SecondMonitorMenu(Menu):
 
     def __init__(
         self,
-        prompt="Second monitor",
-        primary_monitor="eDP1",
-        secondary_monitor="HDMI1",
+        prompt: str = "Second monitor",
+        primary_monitor: str = "eDP1",
+        secondary_monitor: str = "HDMI1",
     ):
         items = [
             ShellItem(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import sys
 import json
-from typing import Iterable, List, NewType, Union, Optional, cast
+from typing import Iterable, List, NewType, Union, Optional, cast, Any, Set
 
 from rofi_menu import constants
 from rofi_menu.rofi_mode import get_rofi_mode, RofiMode
@@ -66,7 +66,11 @@ class Item:
     text: Optional[str] = None
     searchable_text: Optional[str] = None
     nonselectable: Optional[bool] = False
+    flags: Set
     parent_menu: Optional[Menu]
+
+    state: Any
+    loaded: bool
 
     def __init__(self, text: str = None, **kwargs):
         self.id = cast(ItemId, kwargs.get("item_id"))

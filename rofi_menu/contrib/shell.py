@@ -1,11 +1,12 @@
 import asyncio
+from typing import Optional
 
 from rofi_menu.constants import OP_EXIT, OP_OUTPUT
-from rofi_menu.menu import Item, Operation
+from rofi_menu.menu import Item, Operation, MetaStore
 
 
 class ShellItem(Item):
-    def __init__(self, text=None, command="echo OK", **kwargs):
+    def __init__(self, text: Optional[str] = None, command: str = "echo OK", **kwargs):
         self._command = command
         self.show_output = kwargs.pop("show_output", False)
         self.detached = kwargs.pop("detached", True)
@@ -15,7 +16,7 @@ class ShellItem(Item):
     def command(self):
         return self._command
 
-    async def on_select(self, meta):
+    async def on_select(self, meta: MetaStore):
         command = f"nohup {self.command}" if self.detached else self.command
         proc = await asyncio.create_subprocess_shell(
             command,
@@ -26,7 +27,7 @@ class ShellItem(Item):
             ),
             stderr=asyncio.subprocess.DEVNULL,
         )
-        if self.show_output:
+        if proc.stdout is not None:
             data = await proc.stdout.read()
             return Operation(OP_OUTPUT, data.decode("utf-8"))
         return Operation(OP_EXIT)

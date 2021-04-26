@@ -15,7 +15,7 @@ keywords = ["menu", "rofi", "rofi-mode"]
 
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.7"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"

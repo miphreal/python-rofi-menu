@@ -6,6 +6,9 @@ import json
 import os
 from typing import Optional
 
+ROFI_RETV_INITIAL_SCRIPT_CALL = "0"
+ROFI_RETV_SELECTED_ENTRY = "1"
+
 
 class RofiMode:
     def render_menu(self, *items: str) -> str:
@@ -67,7 +70,7 @@ class RofiMode:
         rofi_retv = os.getenv("ROFI_RETV")
         rofi_info = os.getenv("ROFI_INFO")
 
-        if rofi_retv == "1" and rofi_info:
+        if rofi_retv == ROFI_RETV_SELECTED_ENTRY and rofi_info:
             return json.loads(base64.urlsafe_b64decode(rofi_info))
 
         return {}
