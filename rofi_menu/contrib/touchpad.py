@@ -16,7 +16,11 @@ class TouchpadItem(ShellItem):
         self.show_output = False
 
     def get_icon(self, is_touchpad_enabled: bool):
-        return "input-touchpad-symbolic" if is_touchpad_enabled else "touchpad-disabled-symbolic"
+        return (
+            "input-touchpad-symbolic"
+            if is_touchpad_enabled
+            else "touchpad-disabled-symbolic"
+        )
 
     @property
     def command(self):
