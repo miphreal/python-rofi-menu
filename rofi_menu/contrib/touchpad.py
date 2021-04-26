@@ -36,7 +36,7 @@ class TouchpadItem(ShellItem):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
         )
-        if proc is not None:
+        if proc.stdout is not None:
             data = (await proc.stdout.read()).decode("utf-8")
             self.state = bool(self.re_enabled_device.search(data))
             self.icon = self.get_icon(is_touchpad_enabled=self.state)
