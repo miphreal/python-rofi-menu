@@ -33,4 +33,5 @@ jobs:
         run: |
           source .venv/bin/activate
           mypy rofi_menu/
+          isort --diff --check-only --recursive rofi_menu/
           black --check rofi_menu/

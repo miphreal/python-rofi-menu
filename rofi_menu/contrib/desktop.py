@@ -2,7 +2,7 @@ import configparser
 import dataclasses
 import pathlib
 import re
-from typing import Optional, List
+from typing import List, Optional
 
 from rofi_menu.contrib.shell import ShellItem
 from rofi_menu.menu import Menu, MetaStore

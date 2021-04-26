@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import sys
 import json
-from typing import Iterable, List, NewType, Union, Optional, cast, Any, Set
+import sys
+from typing import Any, Iterable, List, Mapping, NewType, Optional, Set, Union, cast
 
 from rofi_menu import constants
-from rofi_menu.rofi_mode import get_rofi_mode, RofiMode
+from rofi_menu.rofi_mode import RofiMode, get_rofi_mode
 
 ItemId = NewType("ItemId", List[str])
 
@@ -14,16 +14,20 @@ ItemId = NewType("ItemId", List[str])
 class MetaStore:
     debug: bool
     raw_script_input: str
+    rofi_version: str
     rofi_mode: RofiMode
+    _state_manager: Mapping
     _meta: dict
 
     def __init__(
         self, raw_script_input, rofi_version: str = "1.5", debug: bool = False
     ):
+        self.rofi_version = rofi_version
         self.rofi_mode = get_rofi_mode(rofi_version)
         self.debug = debug
         self.raw_script_input = raw_script_input
         self._meta = self.rofi_mode.parse_meta(raw_script_input)
+        self._state_manager = self._meta
 
         if debug:
             debug_meta = json.dumps(self._meta, indent=2, sort_keys=True)
@@ -37,15 +41,23 @@ class MetaStore:
     def user_input(self):
         return self.raw_script_input if not self._meta else None
 
+    def as_dict(self):
+        return self._meta
+
+    @property
+    def state_manager(self):
+        return self._state_manager
+
+    @state_manager.setter
+    def state_manager(self, data_manager: Mapping):
+        self._state_manager = data_manager
+
     def get_state(self, item_id):
-        return self._meta.get(".".join(item_id))
+        return self._state_manager.get(".".join(item_id))
 
     def set_state(self, item_id, state):
         if state is not None:
-            self._meta[".".join(item_id)] = state
-
-    def as_dict(self):
-        return self._meta
+            self._state_manager[".".join(item_id)] = state
 
     def log(self, message: str):
         if self.debug:
@@ -292,14 +304,14 @@ class Menu:
             if constants.FLAG_STYLE_URGENT in item.flags:
                 _rofi_menu.append(meta.rofi_mode.menu_urgent(num))
 
-        common_meta = meta.as_dict()
+        shared_meta = meta.as_dict()
         _rofi_menu.extend(
             meta.rofi_mode.menu_item(
                 text=text,
                 icon=item.icon,
                 searchable_text=item.searchable_text,
                 nonselectable=item.nonselectable,
-                meta_data={**common_meta, "text": text, "id": item.id},
+                meta_data={**shared_meta, "text": text, "id": item.id},
             )
             for text, item in zip(rendered_items, self.items)
         )

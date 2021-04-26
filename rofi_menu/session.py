@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import collections.abc
 import getpass
@@ -7,24 +9,31 @@ import pathlib
 import sys
 import typing
 
+from rofi_menu.menu import MetaStore
 
-def session_middleware(session, clear_session: bool = True):
+
+def session_middleware(session: BaseSession, clear_session: bool = True):
     """Handle loading and persisting session."""
 
     def wrap_middleware(func):
         async def wrapper(**kwargs):
-            meta = kwargs["meta"]
-            meta.session = session
+            meta: MetaStore = kwargs["meta"]
+            meta.state_manager = session
 
+            meta.log("=> [session middleware] Loading session...")
             await session.load()
 
+            meta.log(f"=> [session middleware] Session data: {session._session}")
+
             if clear_session and meta.raw_script_input is None:
+                meta.log("=> [session middleware] New rofi session has started.")
                 # First run of the script (no passed params) => we can start new session
                 session.clear()
 
             try:
                 await func(**kwargs)
             finally:
+                meta.log("=> [session middleware] Saving session...")
                 await session.save()
 
         return wrapper

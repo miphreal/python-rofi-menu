@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional
 
 from rofi_menu.constants import OP_EXIT, OP_OUTPUT
-from rofi_menu.menu import Item, Operation, MetaStore
+from rofi_menu.menu import Item, MetaStore, Operation
 
 
 class ShellItem(Item):

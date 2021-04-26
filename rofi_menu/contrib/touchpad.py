@@ -1,8 +1,8 @@
 import asyncio
 import re
 
-from rofi_menu.menu import MetaStore
 from rofi_menu.contrib.shell import ShellItem
+from rofi_menu.menu import MetaStore
 
 
 class TouchpadItem(ShellItem):

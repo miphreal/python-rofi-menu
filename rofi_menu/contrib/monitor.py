@@ -1,4 +1,5 @@
 from rofi_menu.menu import Menu
+
 from .shell import ShellItem
 
 
