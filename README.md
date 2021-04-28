@@ -1,8 +1,8 @@
-<p align="center">
-    <a href="https://pypi.org/project/rofi-menu/">
-        <img src="https://badge.fury.io/py/rofi-menu.svg" alt="Package version">
-    </a>
-</p>
+![PyPI - License](https://img.shields.io/pypi/l/rofi-menu.svg)
+![PyPI - Implementation](https://img.shields.io/pypi/implementation/rofi-menu.svg)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/rofi-menu.svg)
+[![PyPI](https://img.shields.io/pypi/v/rofi-menu.svg)](https://pypi.org/project/rofi-menu/)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/miphreal/python-rofi-menu.svg)
 
 # rofi-menu
 
