@@ -34,7 +34,7 @@ class MetaStore:
             self.log(f"* Parsed meta:\n{debug_meta}\n")
 
     @property
-    def selected_id(self):
+    def selected_id(self) -> Optional[ItemId]:
         return self._meta.get("id")
 
     @property
@@ -208,7 +208,21 @@ class NestedMenu(Item):
         building for submenu and return "bound" element.
         """
         obj = await super().build(parent_menu=parent_menu, item_id=item_id, meta=meta)
-        obj.sub_menu = await self.sub_menu.build(menu_id=obj.id, meta=meta)
+
+        latest_menu_id = meta.state_manager.get(constants.LAST_MENU_ID_STATE_KEY)
+        is_active_menu = bool(
+            # It was selected
+            meta.selected_id
+            and item_id == meta.selected_id[: len(item_id)]
+            # or user entered some text
+            or meta.user_input
+            and latest_menu_id
+            and item_id == latest_menu_id[: len(item_id)]
+        )
+
+        if is_active_menu:
+            obj.sub_menu = await self.sub_menu.build(menu_id=obj.id, meta=meta)
+
         return obj
 
     async def handle_select(self, meta: MetaStore):
@@ -329,7 +343,7 @@ class Menu:
         return meta.rofi_mode.render_menu(*_rofi_menu)
 
     async def post_render(self, meta: MetaStore):
-        meta.state_manager["last_active_menu"] = self.id
+        meta.state_manager[constants.LAST_MENU_ID_STATE_KEY] = self.id
 
     async def handle_render(self, meta: MetaStore):
         await self.pre_render(meta)
@@ -338,7 +352,7 @@ class Menu:
         return text
 
     async def propagate_select(self, meta: MetaStore):
-        item_id = meta.selected_id
+        item_id = cast(ItemId, meta.selected_id)
 
         for item in self.items:
             if item.id == item_id[: len(item.id)]:
@@ -352,7 +366,7 @@ class Menu:
         return Operation.output_menu(await self.handle_render(meta))
 
     async def propagate_user_input(self, meta: MetaStore) -> Operation:
-        menu_id = meta.state_manager.get("last_active_menu", None)
+        menu_id = meta.state_manager.get(constants.LAST_MENU_ID_STATE_KEY, None)
 
         op = Operation.refresh_menu()
 
