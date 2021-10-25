@@ -24,13 +24,13 @@ class StartpageMenu(SearchMenu):
         super().__init__(*args, **kwargs)
 
     async def request_suggestions(self, meta):
-        query = {"query" : meta.user_input, "limit": "10", "format": "json"}
+        query = {"q" : meta.user_input, "limit": "10", "format": "json"}
         if not self.__class__.lang == "":
             query["lang"] = self.__class__.lang
-        url = urlunparse(("https", "www.startpage.com", "do/suggest", "", urlencode(query), ""))
+        url = urlunparse(("https", "www.startpage.com", "suggestions", "", urlencode(query), ""))
         with urlopen(url) as response:
             data = json.loads(response.read().decode())
-            return data[1]
+            return list(map(lambda el: el["text"], data["suggestions"]))
 
 
 class StartpageDEItem(StartpageItem):
