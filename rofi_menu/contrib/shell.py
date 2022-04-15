@@ -18,6 +18,8 @@ class ShellItem(Item):
 
     async def on_select(self, meta: MetaStore):
         command = f"nohup {self.command}" if self.detached else self.command
+
+        meta.log(f"=> [shell item] Executing shell command: {command}")
         proc = await asyncio.create_subprocess_shell(
             command,
             stdout=(
@@ -28,6 +30,7 @@ class ShellItem(Item):
             stderr=asyncio.subprocess.DEVNULL,
         )
         if proc.stdout is not None:
-            data = await proc.stdout.read()
-            return Operation(OP_OUTPUT, data.decode("utf-8"))
+            data = (await proc.stdout.read()).decode("utf-8")
+            meta.log(f"=> [shell item] command output: {data}")
+            return Operation(OP_OUTPUT, data)
         return Operation(OP_EXIT)

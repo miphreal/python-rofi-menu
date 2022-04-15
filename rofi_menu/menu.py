@@ -2,8 +2,21 @@ from __future__ import annotations
 
 import asyncio
 import json
+import inspect
 import sys
-from typing import Any, Iterable, List, Mapping, NewType, Optional, Set, Union, cast
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Iterable,
+    List,
+    Mapping,
+    NewType,
+    Optional,
+    Set,
+    Union,
+    cast,
+)
 
 from rofi_menu import constants
 from rofi_menu.rofi_mode import RofiMode, get_rofi_mode
@@ -59,8 +72,10 @@ class MetaStore:
         if state is not None:
             self._state_manager[".".join(item_id)] = state
 
-    def log(self, message: str):
+    def log(self, message: str, offset: int = 0):
         if self.debug:
+            if offset:
+                sys.stderr.write(" " * offset)
             sys.stderr.write(message)
             sys.stderr.write("\n")
             sys.stderr.flush()
@@ -97,6 +112,14 @@ class Item:
     flags: Set
     parent_menu: Optional[Menu]
 
+    on_select_action: Optional[
+        Union[
+            Callable[
+                [MetaStore], Union[Awaitable[Optional[Operation]], Optional[Operation]]
+            ]
+        ]
+    ] = None
+
     state: Any
     loaded: bool
 
@@ -116,6 +139,9 @@ class Item:
 
         # filled after attaching to menu
         self.parent_menu = None
+
+        # behavior
+        self.on_select_action = kwargs.get("on_select_action", self.on_select_action)
 
     def clone(self):
         obj = self.__class__()
@@ -163,8 +189,18 @@ class Item:
         if not self.loaded:
             await self.load(meta)
 
+    async def _call_on_select_callback(self, meta: MetaStore):
+        if not self.on_select_action:
+            return None
+
+        ret = self.on_select_action(meta)
+        if ret and inspect.isawaitable(ret):
+            return await ret
+        return ret
+
     async def on_select(self, meta: MetaStore):
-        return Operation.refresh_menu()
+        ret = await self._call_on_select_callback(meta)
+        return ret or Operation.refresh_menu()
 
     async def post_select(self, meta: MetaStore):
         await self.store(meta)
@@ -290,6 +326,12 @@ class Menu:
         obj = self.clone()
         obj.id = menu_id
         obj.items = await obj.build_menu_items(meta=meta)
+
+        if meta.debug:
+            meta.log("[build menu]", offset=len(menu_id) - 1)
+            for item in obj.items:
+                meta.log(f"[item] {item.text} {item.id}", offset=len(item.id) - 1)
+
         return obj
 
     async def build_menu_items(self, meta: MetaStore):

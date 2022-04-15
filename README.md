@@ -6,16 +6,16 @@
 
 # rofi-menu
 
-Rofi allows defining custom modes ([see the spec](https://github.com/davatorium/rofi/wiki/mode-Specs)).
+Rofi allows defining custom script modes ([see the spec](https://github.com/davatorium/rofi/blob/next/doc/rofi-script.5.markdown)).
 
 This lib is a reference implementation with some extra "sugar".
 
 Features:
 
 - simple menu definition via python
-- extendable
-- async in first place
-- allows keeping state during rofi session
+- extendable (custom behavior)
+- async in the first place
+- flexible on keeping state between script executions
 
 Simple demo:
 
@@ -193,8 +193,24 @@ if __name__ == "__main__":
 
 ![advanced example](https://github.com/miphreal/python-rofi-menu/raw/master/docs/menu-example-advanced.png)
 
-## TODO
 
-- [ ] documentation of API
-- [ ] examples
-- [ ] tests
+## Troubleshooting
+
+`rofi_menu.run(...)` outputs menu items to `stdout` as expected by Rofi. If you do
+`print("something")` it'll become a part of menu. Any debug information
+can be printed to `stderr`, e.g. `print("something", file=sys.stderr)`.
+
+Additionally, you can enable "debug" mode for the `rofi-menu` package itself:
+
+```python
+if __name__ == "__main__":
+    rofi_menu.run(main_menu, debug=True)
+```
+
+`debug=True` will output additional info about all steps of building menu for Rofi.
+
+
+## Testing
+
+- TODO: tests for 1.5, 1.6, 1.7 rofi support
+- TODO: e2e tests for all usecases

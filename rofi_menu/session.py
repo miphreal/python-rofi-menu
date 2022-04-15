@@ -35,6 +35,7 @@ def session_middleware(session: BaseSession, clear_session: bool = True):
             finally:
                 meta.log("=> [session middleware] Saving session...")
                 await session.save()
+                meta.log("=> [session middleware] Session saved")
 
         return wrapper
 

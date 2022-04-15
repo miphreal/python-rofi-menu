@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Nothing here yet
+- Added e2e tests
+- Supported debug mode with proper stderr output
+- Supported rofi 1.7
 
 ## [0.6.0] - 2021-04-23
 - Added `contrib/desktop.py` to generate application menu from `*.desktop` files
